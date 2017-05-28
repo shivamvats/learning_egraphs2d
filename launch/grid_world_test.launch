@@ -1,0 +1,16 @@
+<launch>
+    <node name="gridworld" pkg="learning_egraphs2d" type="gridworld"
+output="screen" >
+        <param name="mprim_path" value="$(find learning_egraphs2d)/config/xy_24_connected.mprim"/>
+        <param name="planning_frame" value="/map"/>
+
+        <param name="plan_output_dir" value="/home/aries/.ros/plans"/>
+        <param name="egraph_file" value="$(find learning_egraphs2d)/experiments/egraphs" />
+
+        <param name="start/x" value="0.5" />
+        <param name="start/y" value="0.33" />
+
+        <param name="goal/x" value="0.5" />
+        <param name="goal/y" value="0.66" />
+    </node>
+</launch>
