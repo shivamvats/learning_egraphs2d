@@ -1,11 +1,8 @@
 #include "grid_collision_checker_2d.h"
 
-bool GridCollisionChecker2D::isStateValid(
-    const smpl::RobotState& state,
-    bool verbose,
-    bool visualize,
-    double& dist)
-{
+bool GridCollisionChecker2D::isStateValid(const smpl::RobotState &state,
+                                          bool verbose, bool visualize,
+                                          double &dist) {
     if (state.size() < 2) {
         ROS_ERROR("State contains insufficient data");
         return false;
@@ -24,36 +21,30 @@ bool GridCollisionChecker2D::isStateValid(
     return true;
 }
 
-bool GridCollisionChecker2D::isStateToStateValid(
-    const smpl::RobotState& start,
-    const smpl::RobotState& finish,
-    int& path_length,
-    int& num_checks,
-    double& dist)
-{
+bool GridCollisionChecker2D::isStateToStateValid(const smpl::RobotState &start,
+                                                 const smpl::RobotState &finish,
+                                                 int &path_length,
+                                                 int &num_checks,
+                                                 double &dist) {
     std::vector<smpl::RobotState> path;
     if (!interpolatePath(start, finish, path)) {
         return false;
     }
-    return std::all_of(
-        path.begin(), path.end(),
-        [&](const smpl::RobotState& state)
-        {
-            double dist;
-            return isStateValid(state, false, false, dist);
-        });
+    return std::all_of(path.begin(), path.end(),
+                       [&](const smpl::RobotState &state) {
+                           double dist;
+                           return isStateValid(state, false, false, dist);
+                       });
 }
 
 bool GridCollisionChecker2D::interpolatePath(
-    const smpl::RobotState& start,
-    const smpl::RobotState& finish,
-    std::vector<smpl::RobotState>& path)
-{
+    const smpl::RobotState &start, const smpl::RobotState &finish,
+    std::vector<smpl::RobotState> &path) {
     m_grid->resolution();
     const Eigen::Vector2d vstart(start[0], start[1]);
     const Eigen::Vector2d vfinish(finish[0], finish[1]);
     int num_waypoints =
-            std::ceil((vfinish - vstart).norm() / m_grid->resolution());
+        std::ceil((vfinish - vstart).norm() / m_grid->resolution());
     num_waypoints = std::max(num_waypoints, 2);
     ROS_DEBUG("interpolate path with %d waypoints", num_waypoints);
     for (int i = 0; i < num_waypoints; ++i) {
