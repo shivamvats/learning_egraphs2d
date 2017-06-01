@@ -141,6 +141,43 @@ sbpl::OccupancyGrid setupOccupancyGrid(std::string planning_frame) {
     return grid;
 }
 
+/*
+void setStartGoal(std::shared_ptr<smpl::ManipLatticeEgraph>& pspace,
+                  smpl::RobotState start, smpl::RobotState goal) {
+    if (!pspace->setGoal(goal)) {
+        ROS_ERROR("Failed to set goal");
+        return 1;
+    }
+
+    if (!pspace->setStart(start_state)) {
+        ROS_ERROR("Failed to set start");
+        return 1;
+    }
+
+    int start_id = pspace->getStartStateID();
+    if (start_id < 0) {
+        ROS_ERROR("Start state id is invalid");
+        return 1;
+    }
+
+    int goal_id = pspace->getGoalStateID();
+    if (goal_id < 0)  {
+        ROS_ERROR("Goal state id is invalid");
+        return 1;
+    }
+
+    if (search->set_start(start_id) == 0) {
+        ROS_ERROR("Failed to set planner start state");
+        return 1;
+    }
+
+    if (search->set_goal(goal_id) == 0) {
+        ROS_ERROR("Failed to set planner goal state");
+        return 1;
+    }
+}
+*/
+
 int main(int argc, char* argv[])
 {
     std::string ns = "xytheta";
@@ -255,6 +292,7 @@ int main(int argc, char* argv[])
     goal.angles = goal_state;
     goal.angle_tolerances = { 0.02, 0.02 };
 
+    //setStartGoal(pspace, start_state, goal);
     if (!pspace->setGoal(goal)) {
         ROS_ERROR("Failed to set goal");
         return 1;
