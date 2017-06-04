@@ -10,7 +10,7 @@
 sbpl::OccupancyGrid setupOccupancyGrid(std::string planning_frame,
                                        const double world_size_x = 5,
                                        const double world_size_y = 5) {
-    const double grid_res = 0.02;
+    const double grid_res = 0.01;
     const double world_size_z = 1.5 * grid_res;
     const double world_origin_x = 0.0;
     const double world_origin_y = 0.0;
@@ -27,6 +27,7 @@ sbpl::OccupancyGrid setupOccupancyGrid(std::string planning_frame,
 }
 
 int main(int argc, char *argv[]) {
+
     // Setting  up environment.
     std::string ns = "test_generator";
     ros::init(argc, argv, ns);
@@ -78,3 +79,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+

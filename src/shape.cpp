@@ -1,5 +1,7 @@
-#include "shape.h"
 #include <queue>
+#include "shape.h"
+#include "utils.h"
+
 
 Shape::Shape(std::vector<Vector3d> boundary) { m_boundary = boundary; }
 
@@ -69,4 +71,12 @@ std::vector<Vector3d> Shape::getAllPoints(sbpl::OccupancyGrid &grid) {
     grid.addPointsToField(points);
 
     return m_points;
+}
+
+void Shape::translateToPoint(Vector3d origin) {
+    auto func = [&](Vector3d &point) {
+        return std::bind(translatePoint, std::placeholders::_1, origin);
+    };
+    std::for_each(m_boundary.begin(), m_boundary.end(), func);
+    std::for_each(m_points.begin(), m_points.end(), func);
 }

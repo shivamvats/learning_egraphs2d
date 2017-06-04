@@ -18,13 +18,19 @@ public:
 
     std::vector<Vector3d> getBoundary() { return m_boundary; }
     std::vector<Vector3d> getAllPoints(sbpl::OccupancyGrid &grid);
-
+    void translateToPoint(Vector3d origin);
+    void setCircumRadius(double radius) { m_circumRadius = radius; }
+    double getCircumRadius() { return m_circumRadius; }
+    void setCircumCenter(Vector3d center) { m_circumCenter = center; }
+    Vector3d getCircumCenter() { return m_circumCenter; }
 private:
     // Given a boundary, fill the shape with points.
     void fillShape();
 
     std::vector<Vector3d> m_boundary;
     std::vector<Vector3d> m_points;
+    double m_circumRadius;
+    Vector3d m_circumCenter;
 };
 
 #endif

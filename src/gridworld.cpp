@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cmath>
+#include <algorithm>
 
 #include <moveit_msgs/GetMotionPlan.h>
 #include <moveit_msgs/PlanningScene.h>
@@ -23,7 +24,8 @@
 #include "grid_collision_checker_2d.h"
 #include "kinematic_vehicle_model_2d.h"
 #include "utils.h"
-//#include "2d_shape_generator.h"
+#include "random_shape_generator.h"
+#include "start_goal_generator.h"
 
 namespace smpl = sbpl::motion;
 
@@ -79,51 +81,33 @@ void SetupOccupancyGrid(sbpl::OccupancyGrid &grid) {
     grid.addPointsToField(points);
 }
 
-visualization_msgs::Marker getPointVisualization(geometry_msgs::Point point_,
-                                                 std::string frame,
-                                                 std::string ns) {
-    visualization_msgs::Marker point;
-    point.header.frame_id = frame;
-    point.header.stamp = ros::Time::now();
-    point.ns = ns;
-    point.action = visualization_msgs::Marker::ADD;
-    point.pose.orientation.w = 1.0;
-    point.id = 0;
-    point.type = visualization_msgs::Marker::POINTS;
-    point.scale.x = 0.2;
-    point.scale.y = 0.2;
-    point.scale.z = 0.2;
-    point.color.g = 1.0;
-    point.color.b = 1.0;
-    point.color.a = 1;
+Shape addRandomObstacle(sbpl::OccupancyGrid &grid, GridCollisionChecker2D &cc) {
+    double gridSize = std::min(grid.sizeX(), grid.sizeY());
 
-    point.points.push_back(point_);
+    int minNumSides = 8;
+    int maxNumSides = 12;
+    double minRadius = gridSize/4;
+    double maxRadius = gridSize/3;
+    RandomShapeGenerator shapeGen(&cc, minNumSides, maxNumSides, minRadius,
+                                  maxRadius);
 
-    // visualization_msgs::MarkerArray points;
-    // points.markers = {point};
+    int numShapes = 1;
+    std::vector<Shape> shapes = shapeGen.generateRandomShapes(numShapes, grid);
 
-    return point;
-}
+    // Keep the obstacle at the center of the map.
+    Vector3d origin = {grid.sizeX() / 2, grid.sizeY() / 2, 0};
+    Shape shape = shapes[0];
 
-visualization_msgs::Marker
-getLineVisualization(std::vector<geometry_msgs::Point> points,
-                     std::string frame, std::string ns) {
-    visualization_msgs::Marker line_strip;
-    line_strip.header.frame_id = frame;
-    line_strip.header.stamp = ros::Time::now();
-    line_strip.ns = ns;
-    line_strip.action = visualization_msgs::Marker::ADD;
-    line_strip.pose.orientation.w = 1.0;
-    line_strip.id = 1;
-    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
-    line_strip.scale.x = 0.001;
-    line_strip.color.g = 1.0;
-    line_strip.color.a = 1;
+    Shape inflatedShape = shapeGen.inflateShape(shape, grid, 1);
+    std::vector<Vector3d> points = inflatedShape.getBoundary();
 
-    for (auto point : points)
-        line_strip.points.push_back(point);
+    // Translating the shape to the origin.
+    shape.translateToPoint(origin);
+    //XXX Introduce rotation?
 
-    return line_strip;
+    grid.addPointsToField(points);
+    // grid.reset();
+    return shape;
 }
 
 sbpl::OccupancyGrid setupOccupancyGrid(std::string planning_frame,
@@ -144,43 +128,6 @@ sbpl::OccupancyGrid setupOccupancyGrid(std::string planning_frame,
     grid.setReferenceFrame(planning_frame);
     return grid;
 }
-
-/*
-void setStartGoal(std::shared_ptr<smpl::ManipLatticeEgraph>& pspace,
-                  smpl::RobotState start, smpl::RobotState goal) {
-    if (!pspace->setGoal(goal)) {
-        ROS_ERROR("Failed to set goal");
-        return 1;
-    }
-
-    if (!pspace->setStart(start_state)) {
-        ROS_ERROR("Failed to set start");
-        return 1;
-    }
-
-    int start_id = pspace->getStartStateID();
-    if (start_id < 0) {
-        ROS_ERROR("Start state id is invalid");
-        return 1;
-    }
-
-    int goal_id = pspace->getGoalStateID();
-    if (goal_id < 0)  {
-        ROS_ERROR("Goal state id is invalid");
-        return 1;
-    }
-
-    if (search->set_start(start_id) == 0) {
-        ROS_ERROR("Failed to set planner start state");
-        return 1;
-    }
-
-    if (search->set_goal(goal_id) == 0) {
-        ROS_ERROR("Failed to set planner goal state");
-        return 1;
-    }
-}
-*/
 
 int main(int argc, char *argv[]) {
     std::string ns = "xytheta";
@@ -212,6 +159,7 @@ int main(int argc, char *argv[]) {
     // 1. Instantiate Robot Model
     KinematicVehicleModel2D robot_model;
 
+
     // 2. Instantiate the Environment
     double world_size_x = 5.0;
     double world_size_y = 5.0;
@@ -219,11 +167,15 @@ int main(int argc, char *argv[]) {
         setupOccupancyGrid(planning_frame, world_size_x, world_size_y);
     ROS_INFO("Occupancy grid set up.");
 
+    GridCollisionChecker2D cc(&grid);
+
+    // Add a random obstacle to the grid.
+    Shape shape = addRandomObstacle(grid, cc);
+
     // Visualize the obstacles and boundary.
     ma_pub.publish(grid.getOccupiedVoxelsVisualization());
     ma_pub.publish(grid.getBoundingBoxVisualization());
 
-    GridCollisionChecker2D cc(&grid);
 
     // 3. Define Parameters
     smpl::PlanningParams params;
@@ -281,21 +233,26 @@ int main(int argc, char *argv[]) {
 
     // 10. Set start state and goal condition in the Planning Space and
     // propagate state IDs to search
-    double start_x = 0.1;
-    double start_y = 0.23;
-    // double start_z = 1.0;
+    //double start_x = 0.1;
+    //double start_y = 0.23;
+    //double start_z = 0;
+    //double goal_x = 0.9;
+    //double goal_y = 0.96;
+    //double goal_z = 0;
+    smpl::RobotState start_state, goal_state;
+    StartGoalGenerator startGoalgenerator;
+    double startRadius = 1.2 * shape.getCircumRadius();
+    double goalRadius = 1.2 * shape.getCircumRadius();
 
-    const smpl::RobotState start_state = {start_x, start_y}; //, start_z };
+    startGoalgenerator.generateStartGoalOnCircle(start_state, goal_state,
+                                                 Vector3d(0, 0, 0), startRadius);
+
+
     moveit_msgs::RobotState start_state_msg;
     start_state_msg.joint_state.name.push_back("x");
     start_state_msg.joint_state.name.push_back("y");
-    start_state_msg.joint_state.position.push_back(start_x);
-    start_state_msg.joint_state.position.push_back(start_y);
-
-    double goal_x = 0.9;
-    double goal_y = 0.96;
-    // double goal_z = 1.0;
-    const smpl::RobotState goal_state = {goal_x, goal_y}; //, goal_z };
+    start_state_msg.joint_state.position.push_back(start_state[0]);
+    start_state_msg.joint_state.position.push_back(start_state[1]);
 
     smpl::GoalConstraint goal;
     goal.type = smpl::GoalType::JOINT_STATE_GOAL;
@@ -398,3 +355,40 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+/*
+void setStartGoal(std::shared_ptr<smpl::ManipLatticeEgraph>& pspace,
+                  smpl::RobotState start, smpl::RobotState goal) {
+    if (!pspace->setGoal(goal)) {
+        ROS_ERROR("Failed to set goal");
+        return 1;
+    }
+
+    if (!pspace->setStart(start_state)) {
+        ROS_ERROR("Failed to set start");
+        return 1;
+    }
+
+    int start_id = pspace->getStartStateID();
+    if (start_id < 0) {
+        ROS_ERROR("Start state id is invalid");
+        return 1;
+    }
+
+    int goal_id = pspace->getGoalStateID();
+    if (goal_id < 0)  {
+        ROS_ERROR("Goal state id is invalid");
+        return 1;
+    }
+
+    if (search->set_start(start_id) == 0) {
+        ROS_ERROR("Failed to set planner start state");
+        return 1;
+    }
+
+    if (search->set_goal(goal_id) == 0) {
+        ROS_ERROR("Failed to set planner goal state");
+        return 1;
+    }
+}
+*/

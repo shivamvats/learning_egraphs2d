@@ -4,6 +4,36 @@
 #include <smpl/time.h>
 #include <utility>
 
+int getRandomInt(int min, int max) {
+    return min + static_cast<int>(static_cast<float>(rand()) /
+                                  (static_cast<float>(RAND_MAX / (max - min))));
+}
+
+float getRandomFloat(float min, float max) {
+    float random = rand();
+    return min +
+           static_cast<float>(random) /
+               (static_cast<float>(RAND_MAX / (max - min)));
+}
+
+std::vector<Vector3d> samplePointsOnCircle(Vector3d center, double radius, int num) {
+    std::vector<double> thetas;
+    for (int i = 0; i < num; i++)
+        thetas.push_back((static_cast<float>(rand()) / RAND_MAX) * 2 * PI);
+    std::sort(thetas.begin(), thetas.end());
+
+    // Get vertices of the polygon.
+    std::vector<Vector3d> points;
+    for (int i = 0; i < num; i++) {
+        // Sample num points on a circle of radius 'radius'.
+        double theta = thetas[i];
+        ROS_INFO("%f", theta);
+        points.push_back(
+            Vector3d{radius * cos(theta), radius * sin(theta), 0});
+    }
+    return points;
+}
+
 bool writePath(const moveit_msgs::RobotState &ref,
                const moveit_msgs::RobotTrajectory &traj,
                smpl::RobotModel *robotModel, std::string plan_output_dir) {
@@ -190,3 +220,57 @@ void PrintActionSpace(const smpl::ManipLatticeActionSpace &aspace) {
         }
     }
 }
+
+visualization_msgs::Marker getPointVisualization(geometry_msgs::Point point_,
+                                                 std::string frame,
+                                                 std::string ns) {
+    visualization_msgs::Marker point;
+    point.header.frame_id = frame;
+    point.header.stamp = ros::Time::now();
+    point.ns = ns;
+    point.action = visualization_msgs::Marker::ADD;
+    point.pose.orientation.w = 1.0;
+    point.id = 0;
+    point.type = visualization_msgs::Marker::POINTS;
+    point.scale.x = 0.2;
+    point.scale.y = 0.2;
+    point.scale.z = 0.2;
+    point.color.g = 1.0;
+    point.color.b = 1.0;
+    point.color.a = 1;
+
+    point.points.push_back(point_);
+
+    // visualization_msgs::MarkerArray points;
+    // points.markers = {point};
+
+    return point;
+}
+
+visualization_msgs::Marker
+getLineVisualization(std::vector<geometry_msgs::Point> points,
+                     std::string frame, std::string ns) {
+    visualization_msgs::Marker line_strip;
+    line_strip.header.frame_id = frame;
+    line_strip.header.stamp = ros::Time::now();
+    line_strip.ns = ns;
+    line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.pose.orientation.w = 1.0;
+    line_strip.id = 1;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip.scale.x = 0.001;
+    line_strip.color.g = 1.0;
+    line_strip.color.a = 1;
+
+    for (auto point : points)
+        line_strip.points.push_back(point);
+
+    return line_strip;
+}
+
+void translatePoint(Vector3d &point, Vector3d origin) {
+    point[0] += origin[0];
+    point[1] += origin[1];
+    point[2] += origin[2];
+}
+

@@ -5,7 +5,8 @@ output="screen" >
         <param name="planning_frame" value="/map"/>
 
         <param name="plan_output_dir" value="/home/aries/.ros/plans"/>
-        <param name="egraph_file" value="$(find learning_egraphs2d)/experiments/egraphs" />
+        <!--<param name="egraph_file" value="$(find
+learning_egraphs2d)/experiments/egraphs" /> -->
 
         <param name="start/x" value="0.5" />
         <param name="start/y" value="0.33" />

@@ -28,11 +28,12 @@ include_directories( include
 )
 
 add_executable(gridworld
-    src/gridworld.cpp
-    src/utils.cpp
-    src/grid_collision_checker_2d.cpp
-    src/shape.cpp
-    src/random_shape_generator.cpp
+    ./src/gridworld.cpp
+    ./src/utils.cpp
+    ./src/grid_collision_checker_2d.cpp
+    ./src/shape.cpp
+    ./src/random_shape_generator.cpp
+    ./src/start_goal_generator.cpp
     )
 
 target_link_libraries(gridworld
@@ -45,11 +46,11 @@ target_link_libraries(gridworld
 #############
 
 add_executable( test_random_shape_generator
-   test/test_random_shape_generator.cpp
-   src/random_shape_generator.cpp
-   src/utils.cpp
-   src/grid_collision_checker_2d.cpp
-   src/shape.cpp
+   ./test/test_random_shape_generator.cpp
+   ./src/random_shape_generator.cpp
+   ./src/utils.cpp
+   ./src/grid_collision_checker_2d.cpp
+   ./src/shape.cpp
    )
 
 target_link_libraries( test_random_shape_generator

@@ -3,7 +3,8 @@
 #include <stdlib.h>
 //#include <smpl/types.h>
 
-#define PI 3.14
+#include "utils.h"
+
 
 RandomShapeGenerator::RandomShapeGenerator(GridCollisionChecker2D *cc,
                                            int minNumSides, int maxNumSides,
@@ -15,17 +16,6 @@ RandomShapeGenerator::RandomShapeGenerator(GridCollisionChecker2D *cc,
     m_minRadius = minRadius;
 }
 
-int getRandomInt(int min, int max) {
-    return min + static_cast<int>(static_cast<float>(rand()) /
-                                  (static_cast<float>(RAND_MAX / (max - min))));
-}
-
-float getRandomFloat(float min, float max) {
-    float random = rand();
-    return min +
-           static_cast<float>(random) /
-               (static_cast<float>(RAND_MAX / (max - min)));
-}
 
 smpl::RobotState toRobotState(Vector3d vector) {
     smpl::RobotState state = {vector[0], vector[1], vector[2]};
@@ -60,32 +50,18 @@ RandomShapeGenerator::generateRandomShapes(int num, sbpl::OccupancyGrid &grid,
     srand(seed);
     std::vector<Shape> shapes;
 
+    double radius;
+    int n_sides;
     for (int i = 0; i < num; i++) {
         std::vector<Vector3d> points;
 
-        double radius = getRandomFloat(m_minRadius, m_maxRadius);
-        int n_sides = getRandomInt(m_minNumSides, m_maxNumSides);
+        radius = getRandomFloat(m_minRadius, m_maxRadius);
+        n_sides = getRandomInt(m_minNumSides, m_maxNumSides);
 
         ROS_INFO("Radius: %f, nSides: %d", radius, n_sides);
 
-        std::vector<Vector3d> vertices;
-        std::vector<double> thetas;
-
-        // Sample n_sides angles on the circle and sort them.
-        for (int j = 0; j < n_sides; j++)
-            thetas.push_back((static_cast<float>(rand()) / RAND_MAX) * 2 * PI);
-        std::sort(thetas.begin(), thetas.end());
-        // thetas = {.5, 1, 1.5, 2, 2.5};
-
-        // Get vertices of the polygon.
-        for (int j = 0; j < n_sides; j++) {
-            // Sample n_sides points on a circle of radius 'radius'.
-            double theta = thetas[j];
-            ROS_INFO("%f", theta);
-            vertices.push_back(
-                Vector3d{radius * cos(theta), radius * sin(theta), 0});
-            ROS_INFO("%f, %f", vertices[j][0], vertices[j][1]);
-        }
+        std::vector<Vector3d> vertices =
+            samplePointsOnCircle(Vector3d(0, 0, 0), radius, n_sides);
 
         // Now, need to interpolate between the vertices to form the boundary.
         for (int j = 0; j < n_sides; j++) {
@@ -105,7 +81,9 @@ RandomShapeGenerator::generateRandomShapes(int num, sbpl::OccupancyGrid &grid,
             points.insert(points.end(), edge.begin(), edge.end());
             // shapes.push_back( Shape(edge) );
         }
-        shapes.push_back(Shape(points));
+        Shape shape(points);
+        shape.setCircumRadius( radius );
+        shapes.push_back(shape);
     }
     return shapes;
 }
